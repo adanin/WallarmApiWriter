@@ -52,7 +52,6 @@ class WallarmApiWriter(object):
             'sleep_tick_interval_secs': 0.1,
             'max_msg_size_bytes': 524288,
             'max_store_timeout': 900,
-            'min_send_threshold': 10,
             'queue_size_decreaser': 5,
             'logging': {
                 'enabled': False,
@@ -342,7 +341,8 @@ class WallarmApiWriter(object):
                 self.main_queue.task_done()
         except Queue.Empty:
             pass
-        if self.config['min_send_threshold'] > len(self.send_queue):
+
+        if not len(self.send_queue):
             return '', 0
 
         # self.log("info",
@@ -391,14 +391,15 @@ class WallarmApiWriter(object):
 
         self.update_credentials()
         if not self.api_url:
-            return
+            return False
 
         while payload:
             if not self.send_data(payload):
-                return
+                return False
             self.send_queue[:msg_len] = ()
             self.last_flush_time = self.get_time()
             payload, msg_len = self.get_payload()
+        return True
 
     def send_data(self, payload):
         """
@@ -441,11 +442,19 @@ class WallarmApiWriter(object):
         return True
 
     def send_watchdog(self):
+        send_result = True
         while not self.shutdown_event.is_set():
-            time.sleep(self.config['sleep_tick_interval_secs'])
+            # Sleep more if the last send operation fails.
+            if send_result:
+                time.sleep(self.config['sleep_tick_interval_secs'])
+            else:
+                time.sleep(self.config['flush_interval_secs'])
 
             time_delta = self.get_time() - self.last_try_time
-            if time_delta < self.config['flush_interval_secs']:
+            msg_count = len(self.send_queue) + self.main_queue.qsize()
+
+            if (time_delta < self.config['flush_interval_secs'] and
+                    msg_count < self.send_queue_size):
                 continue
 
             self.send_lock.acquire()
@@ -455,13 +464,14 @@ class WallarmApiWriter(object):
                 return
 
             try:
-                self.send_loop()
+                send_result = self.send_loop()
             except Exception:
                 msg = "{0}: Sender failed and will be restarted: {1}".format(
                     self.plugin_name,
                     traceback.format_exc()
                 )
                 self.log('error', msg)
+                send_result = False
             self.send_lock.release()
             self.last_try_time = self.get_time()
 
