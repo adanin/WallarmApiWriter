@@ -1,4 +1,4 @@
 WallarmApiWriter
 ================
 
-A plugin collectd to send gathered data to Wallarm API.
+A [collectd](https://collectd.org/) plugin to send gathered data to [Wallarm](http://wallarm.com/) API.
