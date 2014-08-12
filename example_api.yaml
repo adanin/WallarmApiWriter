@@ -1,0 +1,8 @@
+uuid: some-uuid-in-hex
+secret: some-hex-sring
+api:
+  host: somehost
+  port: 443
+  use_ssl: true
+#  ca_path: /my/ca.crt
+#  ca_verify: true

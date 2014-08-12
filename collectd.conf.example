@@ -1,0 +1,54 @@
+FQDNLookup true
+#LoadPlugin syslog
+#<Plugin syslog>
+#  LogLevel info
+#</Plugin>
+#LoadPlugin logfile
+#<Plugin logfile>
+#       LogLevel "debug"
+#       File STDOUT
+#       Timestamp true
+#       PrintSeverity true
+#</Plugin>
+
+<LoadPlugin python>
+    Globals true
+</LoadPlugin>
+
+LoadPlugin python
+
+<Plugin python>
+        ModulePath "./lib/"
+        ModulePath "/usr/lib/collectd/python/"
+        LogTraces true
+        Import "wallarm_api_writer"
+
+    <Module wallarm_api_writer>
+       APIConnFile "./example_api.yaml"
+       # TypesDB "/etc/collectd/my_types.db"
+       ## The time (secs) between send message attempts.
+       # FlushInterval 2
+       ## The timeout (secs) for HTTP request.
+       # FlushTimeout 10
+       ## The max size of HTTP body in bytes.
+       # MaxRequestSize 1000000
+       ## The timeout (secs) for keeping old messages in queue.
+       # DropOutdatedTimeout 1800
+       # URLPath "/"
+    </Module>
+</Plugin>
+
+LoadPlugin battery
+LoadPlugin cpu
+LoadPlugin df
+LoadPlugin disk
+LoadPlugin entropy
+LoadPlugin interface
+LoadPlugin irq
+LoadPlugin load
+LoadPlugin memory
+LoadPlugin processes
+LoadPlugin swap
+LoadPlugin users
+Include "/etc/collectd/filters.conf"
+Include "/etc/collectd/thresholds.conf"
